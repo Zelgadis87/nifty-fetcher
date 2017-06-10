@@ -28,5 +28,13 @@
   "devDependencies": {
     "@zelgadis87/npm-versionator": "^0.5.1",
     "eslint": "^3.19.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Zelgadis87/nifty-fetcher.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Zelgadis87/nifty-fetcher/issues"
+  },
+  "homepage": "https://github.com/Zelgadis87/nifty-fetcher#readme"
 }

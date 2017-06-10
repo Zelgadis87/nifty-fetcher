@@ -21,6 +21,7 @@
     "request-promise": "^4.2.1",
     "xmldom": "^0.1.27",
     "xpath.js": "^1.0.7",
+    "yargs": "^8.0.1",
     "yazl": "^2.4.2"
   },
   "devDependencies": {

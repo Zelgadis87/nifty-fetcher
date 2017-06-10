@@ -10,6 +10,7 @@ const request = require( 'request-promise' )
 	, DOMParser = require( 'xmldom' ).DOMParser
 	, Listr = require( 'listr' )
 	, yazl = require( 'yazl' )
+	, yargs = require( 'yargs' )
 	, fs = Bluebird.promisifyAll( require( 'fs' ) )
 	, enquirer = createEnquirer( require( 'enquirer' ) )
 	, loadYaml = require( 'js-yaml' ).load
@@ -29,7 +30,7 @@ function urlTemplate( baseUrl, orientation, category, title ) {
 }
 
 function taskId( i, n ) {
-	return _.padStart( i + 1, n.toString().length, '0' )
+	return _.padStart( i + 1, n.toString().length, '0' );
 }
 
 async function recursiveMkDir( argDir ) {
@@ -52,7 +53,7 @@ async function recursiveMkDir( argDir ) {
 
 async function downloadLink( baseUrl, link ) {
 	let url = baseUrl + link;
-	return request( baseUrl + link )
+	return request( url )
 		.then( data => {
 			return {
 				href: link,
@@ -89,18 +90,16 @@ async function askCategory( orientation, categories ) {
 async function askName( ) {
 	return enquirer.ask( {
 		name: 'name',
-		message: 'Archive name?',
+		message: 'Archive name? ( type \'<\' to abort )',
 		type: 'input'
 	} ).then( answers => answers.name );
 }
 
-async function askQuestions( yml ) {
-	let orientation, category, name;
-
+async function askQuestions( yml, orientation, category, name ) {
 	while ( !orientation || !category || !name ) {
-		if ( !orientation ) {
+		if ( !orientation || !_.includes( yml.orientations, orientation ) ) {
 			orientation = await askOrientation( yml.orientations );
-		} else if ( !category ) {
+		} else if ( !category || !_.includes( yml.categories[ orientation ], category ) ) {
 			category = await askCategory( orientation, yml.categories[ orientation ] );
 			if ( category === '<' ) category = orientation = false;
 		} else if ( !name ) {
@@ -116,7 +115,27 @@ async function askQuestions( yml ) {
 async function main() {
 
 	let yml = loadYaml( fs.readFileSync( 'nifty.yml', 'UTF-8' ) );
-	let [ orientation, category, name ] = await askQuestions( yml );
+
+	let argv = yargs
+		.option( 'orientation', {
+			alias: 'o',
+			describe: 'choose an orientation',
+			choices: yml.orientations
+		} )
+		.option( 'category', {
+			alias: 'c',
+			describe: 'choose a category',
+			choices: _.chain( yml.categories ).values().flatten().uniq().value()
+		} )
+		.option( 'name', {
+			alias: 'n',
+			describe: 'the name of the archive'
+		} )
+		.help()
+		.argv;
+
+	let [ orientation, category, name ] = await askQuestions( yml, argv.orientation, argv.category, argv.name );
+
 	let url = urlTemplate( yml.baseUrl, orientation, category, name );
 
 	let dataDir = path.join( __dirname, 'data' );

@@ -1,0 +1,95 @@
+extends: eslint:recommended
+
+parserOptions:
+    ecmaVersion: 8
+
+env:
+    node: true
+    es6: true
+
+plugins: []
+
+rules:
+
+    //// ECMAScript
+
+    // Possible Errors
+    no-extra-semi: warn
+    no-console: off
+    no-irregular-whitespace: error
+
+    // Best practices
+    array-callback-return: error
+
+
+    // Variables
+    no-unused-vars:
+        - warn
+        -
+            vars: all
+            args: none
+            caughtErrors: none
+
+
+    // Stylistic Issues
+    array-bracket-spacing:
+        - warn
+        - always
+    block-spacing: warn
+    brace-style: off
+    comma-dangle: warn
+    comma-spacing: warn
+    comma-style:
+        - error
+        - last
+        - exceptions:
+            VariableDeclaration: true
+    consistent-this: off
+    func-call-spacing:
+        - warn
+        - never
+    indent:
+        - error
+        - tab
+    keyword-spacing: warn
+    linebreak-style:
+        - warn
+        - windows
+    max-depth:
+        - warn
+        - 4
+    max-len: off
+    max-lines: off
+    new-cap: error
+    new-parens: error
+    no-lonely-if: off
+    no-mixed-operators: error
+    no-mixed-spaces-and-tabs: error
+    no-multiple-empty-lines: warn
+    no-trailing-spaces: warn
+    no-whitespace-before-property: error
+    padded-blocks: off
+    quotes: off
+    semi: error
+    space-before-blocks: error
+    space-before-function-paren:
+        - error
+        - never
+    space-in-parens:
+        - warn
+        - always
+    space-infix-ops: error
+    space-unary-ops:
+        - error
+        - {"words": true, "nonwords": false}
+    spaced-comment: error
+    template-tag-spacing:
+        - warn
+        - always
+
+    no-restricted-globals:
+        - error
+        - console
+        - Promise
+
+

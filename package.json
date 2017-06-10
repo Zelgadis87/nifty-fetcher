@@ -1,0 +1,40 @@
+{
+  "name": "@zelgadis87/nifty-fetcher",
+  "version": "1.0.0",
+  "description": "Downloads an archive from nifty.org and produces a ZIP containing all the files",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "eslint -c .eslintrc index.js",
+    "versionate": "npm-versionator"
+  },
+  "author": "Zelgadis87",
+  "license": "ISC",
+  "dependencies": {
+    "bluebird": "^3.5.0",
+    "enquirer": "^1.0.2",
+    "js-yaml": "^3.8.4",
+    "listr": "^0.12.0",
+    "lodash": "^4.17.4",
+    "moment": "^2.18.1",
+    "prompt-list": "^2.0.1",
+    "request": "^2.81.0",
+    "request-promise": "^4.2.1",
+    "xmldom": "^0.1.27",
+    "xpath.js": "^1.0.7",
+    "yargs": "^8.0.1",
+    "yazl": "^2.4.2"
+  },
+  "devDependencies": {
+    "@zelgadis87/npm-versionator": "^0.5.1",
+    "eslint": "^3.19.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Zelgadis87/nifty-fetcher.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Zelgadis87/nifty-fetcher/issues"
+  },
+  "homepage": "https://github.com/Zelgadis87/nifty-fetcher#readme"
+}

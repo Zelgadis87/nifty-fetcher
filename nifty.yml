@@ -1,0 +1,11 @@
+baseUrl: 'http://www.nifty.org/nifty'
+orientations:
+  - gay
+  - bisexual
+  - lesbian
+  - transgender
+categories:
+  gay: ["adult-friends", "adult-youth", "athletics", "authoritarian", "beginnings", "camping", "celebrity", "college", "encounters", "first-time", "highschool", "historical", "incest", "interracial", "masturbation", "military", "no-sex", "non-english", "relationships", "rural", "sf-fantasy", "urination", "young-friends"]
+  bisexual: ["adult-friends", "adult-youth", "athletics", "authoritarian", "beginnings", "camping", "celebrity", "college", "encounters", "highschool", "historical", "incest", "interracial", "jockey-hollow", "masturbation", "military", "relationships", "rural", "sf-fantasy", "urination", "young-friends"]
+  lesbian: ["adult-friends", "adult-youth", "athletics", "authoritarian", "battle", "beginnings", "bondage", "celebrity", "college", "encounters", "highschool", "hookers", "incest", "interracial", "masturbation", "misc", "romance", "sf-fantasy", "urination", "young-friends"]
+  transgender: ["Joe_Bates_Saga", "Magic-ScFi", "Non-TG-Stories", "authoritarian", "by_authors", "chemical", "college", "control", "mind-control", "authoritarian", "highschool", "mind-control", "she-male", "surgery", "teen", "tv", "young-friends"]

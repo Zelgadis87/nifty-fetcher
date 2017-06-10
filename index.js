@@ -8,13 +8,14 @@ const request = require( 'request-promise' )
 	, console = require( 'console' )
 	, xpath = require( 'xpath.js' )
 	, DOMParser = require( 'xmldom' ).DOMParser
-	, MultiSpinner = require( 'multispinner' )
+	, Listr = require( 'listr' )
 	, yazl = require( 'yazl' )
 	, fs = Bluebird.promisifyAll( require( 'fs' ) )
 	, enquirer = createEnquirer( require( 'enquirer' ) )
 	, loadYaml = require( 'js-yaml' ).load
 	;
 
+class RuntimeError extends Error {}
 Bluebird.longStackTraces();
 
 function createEnquirer( Enquirer ) {
@@ -27,7 +28,11 @@ function urlTemplate( baseUrl, orientation, category, title ) {
 	return `${ baseUrl }/${ orientation }/${ category }/${ title }/`;
 }
 
-function recursiveMkDir( argDir ) {
+function taskId( i, n ) {
+	return _.padStart( i + 1, n.toString().length, '0' )
+}
+
+async function recursiveMkDir( argDir ) {
 	var promise = Bluebird.resolve(),
 		currentPath = "";
 	_.each( argDir.split( path.sep ), function( argSplit, argIdx ) {
@@ -45,14 +50,21 @@ function recursiveMkDir( argDir ) {
 	return promise;
 }
 
-function downloadLink( baseUrl, link ) {
-	return request( baseUrl + link ).then( data => {
-		return {
-			href: link,
-			name: path.basename( link ),
-			content: data
-		};
-	} );
+async function downloadLink( baseUrl, link ) {
+	let url = baseUrl + link;
+	return request( baseUrl + link )
+		.then( data => {
+			return {
+				href: link,
+				name: path.basename( link ),
+				content: data
+			};
+		} )
+		.catch( requestErrors.StatusCodeError, err => { 
+			if ( err.statusCode === 404 ) 
+				throw new RuntimeError( 'Could not download link ' + url ); 
+			throw err; 
+		} );
 }
 
 async function askOrientation( orientations ) {
@@ -97,6 +109,7 @@ async function askQuestions( yml ) {
 		}
 	}
 
+	console.info( '\n' );
 	return [ orientation, category, name ];
 }
 
@@ -110,50 +123,47 @@ async function main() {
 	let outputName = `${ name }.zip`;
 	let outputPath = path.join( dataDir, outputName );
 
-	class RuntimeError extends Error {}
+	await recursiveMkDir( dataDir );
 
-	return Bluebird.resolve( recursiveMkDir( dataDir ) )
-		.tap( () => console.info( 'Fetching archive info...' ) )
-		.then( () => request( url ).catch( requestErrors.StatusCodeError, err => { if ( err.statusCode === 404 ) throw new RuntimeError( 'Could not find archive at ' + url ); throw err; } ) )
-		.then( html => new DOMParser( { errorHandler: _.noop } ).parseFromString( html ) )
-		.then( dom => xpath( dom, '//table/descendant::a/@href' ) )
-		.map( href => href.value )
-		.tap( () => console.info( 'Fetch complete. Downloading contents...' ) )
-		.then( links => {
-			return new Bluebird( resolve => {
+	let tasks = [];
 
-				let spinners = new MultiSpinner( links );
-				let data = Bluebird.map( links, link => downloadLink( url, link )
-					.then( d => {
-						spinners.success( link );
-						return d;
-					}, d => {
-						spinners.error( link );
-						return d;
-					} )
-				);
-				spinners.on( 'done', () => resolve( data ) );
+	tasks.push( { title: `Fetching ${ url }...`, task: ctx => {
+		ctx.links = [];
+		return request( url )
+			.catch( requestErrors.StatusCodeError, err => { 
+				if ( err.statusCode === 404 ) 
+					throw new RuntimeError( 'Could not find archive at ' + url ); 
+				throw err; 
+			} )
+			.then( html => new DOMParser( { errorHandler: _.noop } ).parseFromString( html ) )
+			.then( dom => xpath( dom, '//table/descendant::a/@href' ) )
+			.map( hrefAttr => hrefAttr.value )
+			.map( ( href, i, l ) => {
+				return {
+					title: 	`${ taskId( i, l ) }. Fetching ${ href }...`,
+					task: ctx => downloadLink( url, href ).then( value => { ctx.links[i] = value; return value; } )
+				};
+			} )
+			.then( tasks => new Listr( tasks, { concurrent: true } ) );
+	} } );
 
-			} );
-		} )
-		.tap( () => console.info( 'Download complete. Processing contents...' ) )
-		.then( data => {
-			return new Bluebird( ( resolve ) => {
+	tasks.push( { title: `Generating output...`, task: ( ctx, task ) => {
+		let zipfile = new yazl.ZipFile();
+		zipfile.outputStream.pipe( fs.createWriteStream( outputPath ) );
+		_.each( ctx.links, ( link, i, l ) => {
+			task.output = `Processing ${ link.name }...`;
+			zipfile.addBuffer( new Buffer( link.content ), `${ taskId( i, l ) }-${ link.name }` );
+		} );
+		zipfile.addBuffer( new Buffer( `Downloaded from ${ url } on ${ moment().format( 'DD/MM/YYYY HH:mm' ) } using NiftyFetcher` ), 'DOWNLOADED' );
+		zipfile.end();
 
-				let spinner = new MultiSpinner( [ outputName ] );
-				let zipfile = new yazl.ZipFile();
+		return zipfile.outputStream;
+	} } );
 
-				zipfile.outputStream.pipe( fs.createWriteStream( outputPath ) ).on( 'close', () => spinner.success( outputName ) );
-				_.each( data, ( d, i ) => zipfile.addBuffer( new Buffer( d.content ), `${ _.padStart( i + 1, data.length.toString().length, '0' ) }-${ d.name }` ) );
-				zipfile.addBuffer( new Buffer( `Downloaded from ${ url } on ${ moment().format( 'DD/MM/YYYY HH:mm' ) } using NiftyFetcher` ), 'DOWNLOADED' );
-				zipfile.end();
-
-				spinner.on( 'done', resolve );
-
-			} );
-		} )
-		.tap( () => console.info( 'Process complete. Output available as: ' + outputPath ) )
-		.catch( RuntimeError, err => console.error( err.message ) );
+	return Bluebird.resolve( new Listr( tasks, { collapse: false } ).run() )
+		.then( () => console.info( '\nProcess complete. Output available as: ' + outputPath ) )
+		.catch( RuntimeError, err => console.error( '\nProcess did not complete succesfully.' ) )
+		.catch( err => console.error( '\nAn unexpected error occured: ' + err.stack ) );
 
 }
 

@@ -1,0 +1,21 @@
+{
+  "name": "@zelgadis87/nifty-fetcher",
+  "version": "0.1.0",
+  "description": "Downloads an archive from nifty.org and produces a ZIP containing all the files",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Zelgadis87",
+  "license": "ISC",
+  "dependencies": {
+    "bluebird": "^3.5.0",
+    "lodash": "^4.17.4",
+    "multispinner": "^0.2.1",
+    "request": "^2.81.0",
+    "request-promise": "^4.2.1",
+    "xmldom": "^0.1.27",
+    "xpath.js": "^1.0.7",
+    "yazl": "^2.4.2"
+  }
+}

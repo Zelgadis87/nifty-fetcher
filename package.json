@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "eslint -c .eslintrc index.js"
+    "test": "eslint -c .eslintrc index.js",
+    "versionate": "npm-versionator"
   },
   "author": "Zelgadis87",
   "license": "ISC",
@@ -25,6 +26,7 @@
     "yazl": "^2.4.2"
   },
   "devDependencies": {
+    "@zelgadis87/npm-versionator": "^0.5.1",
     "eslint": "^3.19.0"
   }
 }

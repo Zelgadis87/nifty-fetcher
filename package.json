@@ -14,6 +14,7 @@
     "enquirer": "^1.0.2",
     "js-yaml": "^3.8.4",
     "lodash": "^4.17.4",
+    "moment": "^2.18.1",
     "multispinner": "^0.2.1",
     "prompt-list": "^2.0.1",
     "request": "^2.81.0",

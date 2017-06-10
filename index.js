@@ -2,6 +2,7 @@
 const request = require( 'request-promise' )
 	, requestErrors = require( 'request-promise/errors' )
 	, Bluebird = require( 'bluebird' )
+	, moment = require( 'moment' )
 	, _ = require( 'lodash' )
 	, path = require( 'path' )
 	, console = require( 'console' )
@@ -144,6 +145,7 @@ async function main() {
 
 				zipfile.outputStream.pipe( fs.createWriteStream( outputPath ) ).on( 'close', () => spinner.success( outputName ) );
 				_.each( data, ( d, i ) => zipfile.addBuffer( new Buffer( d.content ), `${ _.padStart( i + 1, data.length.toString().length, '0' ) }-${ d.name }` ) );
+				zipfile.addBuffer( new Buffer( `Downloaded from ${ url } on ${ moment().format( 'DD/MM/YYYY HH:mm' ) } using NiftyFetcher` ), 'DOWNLOADED' );
 				zipfile.end();
 
 				spinner.on( 'done', resolve );

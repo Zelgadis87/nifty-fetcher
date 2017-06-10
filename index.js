@@ -1,5 +1,6 @@
 
 const request = require( 'request-promise' )
+	, requestErrors = require( 'request-promise/errors' )
 	, Bluebird = require( 'bluebird' )
 	, _ = require( 'lodash' )
 	, path = require( 'path' )
@@ -12,6 +13,8 @@ const request = require( 'request-promise' )
 	, enquirer = createEnquirer( require( 'enquirer' ) )
 	, loadYaml = require( 'js-yaml' ).load
 	;
+
+Bluebird.longStackTraces();
 
 let baseUrl = 'http://www.nifty.org/nifty';
 
@@ -75,7 +78,7 @@ async function askCategory( orientation, categories ) {
 async function askName( ) {
 	return enquirer.ask( {
 		name: 'name',
-		message: 'Book name?',
+		message: 'Archive name?',
 		type: 'input'
 	} ).then( answers => answers.name );
 }
@@ -99,7 +102,6 @@ async function askQuestions() {
 	return [ orientation, category, name ];
 }
 
-
 async function main() {
 
 	let [ orientation, category, name ] = await askQuestions();
@@ -109,21 +111,29 @@ async function main() {
 	let outputName = `${ name }.zip`;
 	let outputPath = path.join( dataDir, outputName );
 
+	class RuntimeError extends Error {};
+
 	return Bluebird.resolve( recursiveMkDir( dataDir ) )
-		.tap( () => console.info( 'Fetching info...' ) )
-		.then( () => request( url ) )
+		.tap( () => console.info( 'Fetching archive info...' ) )
+		.then( () => request( url ).catch( requestErrors.StatusCodeError, err => { if ( err.statusCode === 404 ) throw new RuntimeError( 'Could not find archive at ' + url ); throw err; } ) )
 		.then( html => new DOMParser( { errorHandler: _.noop } ).parseFromString( html ) )
 		.then( dom => xpath( dom, '//table/descendant::a/@href' ) )
 		.map( href => href.value )
-		// .then( links => _.reverse( links ) )
-		// TODO: Progress
 		.tap( () => console.info( 'Fetch complete. Downloading contents...' ) )
 		.then( links => {
 			return new Bluebird( resolve => {
 
 				let spinners = new MultiSpinner( links );
-				_.map( links, link => downloadLink( url, link ).tap( spinners.success( link ) ) );
-				spinners.on( 'done', resolve );
+				let data = Bluebird.map( links, link => downloadLink( url, link )
+					.then( d => {
+						spinners.success( link );
+						return d;
+					}, d => {
+						spinners.error( link );
+						return d;
+					} )
+				);
+				spinners.on( 'done', () => resolve( data ) );
 
 			} );
 		} )
@@ -142,7 +152,8 @@ async function main() {
 
 			} );
 		} )
-		.tap( () => console.info( 'Process complete. Output available as: ' + outputPath ) );
+		.tap( () => console.info( 'Process complete. Output available as: ' + outputPath ) )
+		.catch( RuntimeError, err => console.error( err.message ) );
 
 }
 

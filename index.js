@@ -26,7 +26,7 @@ function createEnquirer( Enquirer ) {
 }
 
 function urlTemplate( baseUrl, orientation, category, title ) {
-	return `${ baseUrl }/${ orientation }/${ category }/${ title }/`;
+	return `${ baseUrl }/${ orientation }/${ category }/${ title }`;
 }
 
 function taskId( i, n ) {
@@ -52,19 +52,19 @@ async function recursiveMkDir( argDir ) {
 }
 
 async function downloadLink( baseUrl, link ) {
-	let url = baseUrl + link;
+	let url = baseUrl + '/' + link;
 	return request( url )
 		.then( data => {
 			return {
-				href: link,
+				href: url,
 				name: path.basename( link ),
 				content: data
 			};
 		} )
-		.catch( requestErrors.StatusCodeError, err => { 
-			if ( err.statusCode === 404 ) 
-				throw new RuntimeError( 'Could not download link ' + url ); 
-			throw err; 
+		.catch( requestErrors.StatusCodeError, err => {
+			if ( err.statusCode === 404 )
+				throw new RuntimeError( 'Could not download link ' + url );
+			throw err;
 		} );
 }
 
@@ -149,29 +149,42 @@ async function main() {
 	tasks.push( { title: `Fetching ${ url }...`, task: ctx => {
 		ctx.links = [];
 		return request( url )
-			.catch( requestErrors.StatusCodeError, err => { 
-				if ( err.statusCode === 404 ) 
-					throw new RuntimeError( 'Could not find archive at ' + url ); 
-				throw err; 
+			.catch( requestErrors.StatusCodeError, err => {
+				if ( err.statusCode === 404 )
+					throw new RuntimeError( 'Could not find archive at ' + url );
+				throw err;
 			} )
-			.then( html => new DOMParser( { errorHandler: _.noop } ).parseFromString( html ) )
-			.then( dom => xpath( dom, '//table/descendant::a/@href' ) )
-			.map( hrefAttr => hrefAttr.value )
-			.map( ( href, i, l ) => {
-				return {
-					title: 	`${ taskId( i, l ) }. Fetching ${ href }...`,
-					task: ctx => downloadLink( url, href ).then( value => { ctx.links[i] = value; return value; } )
-				};
-			} )
-			.then( tasks => new Listr( tasks, { concurrent: true } ) );
+			.then( html => {
+				let dom = new DOMParser( { errorHandler: _.noop } ).parseFromString( html );
+				let hrefAttrs = xpath( dom, '//table/descendant::a/@href' );
+
+				if ( hrefAttrs.length > 0 ) {
+					return Bluebird.resolve( hrefAttrs )
+						.map( hrefAttr => hrefAttr.value )
+						.map( ( href, i, l ) => {
+							return {
+								title: 	`${ taskId( i, l ) }. Fetching ${ href }...`,
+								task: ctx => downloadLink( url, href ).then( value => { ctx.links[i] = value; return value; } )
+							};
+						} )
+						.then( tasks => new Listr( tasks, { concurrent: true } ) );
+				} else {
+					ctx.links.push( {
+						href: url,
+						name: name,
+						content: html
+					} );
+					return Bluebird.resolve();
+				}
+			} );
 	} } );
 
 	tasks.push( { title: `Generating output...`, task: ( ctx, task ) => {
 		let zipfile = new yazl.ZipFile();
 		zipfile.outputStream.pipe( fs.createWriteStream( outputPath ) );
-		_.each( ctx.links, ( link, i, l ) => {
+		_.each( ctx.links, ( link, i, arr ) => {
 			task.output = `Processing ${ link.name }...`;
-			zipfile.addBuffer( new Buffer( link.content ), `${ taskId( i, l ) }-${ link.name }` );
+			zipfile.addBuffer( new Buffer( link.content ), `${ taskId( i, arr.length ) }-${ link.name }` );
 		} );
 		zipfile.addBuffer( new Buffer( `Downloaded from ${ url } on ${ moment().format( 'DD/MM/YYYY HH:mm' ) } using NiftyFetcher` ), 'DOWNLOADED' );
 		zipfile.end();

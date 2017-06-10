@@ -167,7 +167,7 @@ async function main() {
 								task: ctx => downloadLink( url, href ).then( value => { ctx.links[i] = value; return value; } )
 							};
 						} )
-						.then( tasks => new Listr( tasks, { concurrent: true } ) );
+						.then( tasks => new Listr( tasks, { concurrent: 3 } ) );
 				} else {
 					ctx.links.push( {
 						href: url,

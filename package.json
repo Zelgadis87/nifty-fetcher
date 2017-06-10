@@ -1,6 +1,6 @@
 {
   "name": "@zelgadis87/nifty-fetcher",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Downloads an archive from nifty.org and produces a ZIP containing all the files",
   "main": "index.js",
   "scripts": {

@@ -4,14 +4,18 @@
   "description": "Downloads an archive from nifty.org and produces a ZIP containing all the files",
   "main": "index.js",
   "scripts": {
+    "start": "node index.js",
     "test": "eslint -c .eslintrc index.js"
   },
   "author": "Zelgadis87",
   "license": "ISC",
   "dependencies": {
     "bluebird": "^3.5.0",
+    "enquirer": "^1.0.2",
+    "js-yaml": "^3.8.4",
     "lodash": "^4.17.4",
     "multispinner": "^0.2.1",
+    "prompt-list": "^2.0.1",
     "request": "^2.81.0",
     "request-promise": "^4.2.1",
     "xmldom": "^0.1.27",

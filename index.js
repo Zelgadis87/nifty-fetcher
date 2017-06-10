@@ -9,9 +9,17 @@ const request = require( 'request-promise' )
 	, MultiSpinner = require( 'multispinner' )
 	, yazl = require( 'yazl' )
 	, fs = Bluebird.promisifyAll( require( 'fs' ) )
+	, enquirer = createEnquirer( require( 'enquirer' ) )
+	, loadYaml = require( 'js-yaml' ).load
 	;
 
 let baseUrl = 'http://www.nifty.org/nifty';
+
+function createEnquirer( Enquirer ) {
+	let e = new Enquirer();
+	e.register( 'list', require( 'prompt-list' ) );
+	return e;
+}
 
 function urlTemplate( orientation, category, title ) {
 	return `${ baseUrl }/${ orientation }/${ category }/${ title }/`;
@@ -45,12 +53,56 @@ function downloadLink( baseUrl, link ) {
 	} );
 }
 
-function main() {
+async function askOrientation( orientations ) {
+	return enquirer.ask( {
+		name: 'orientation',
+		message: 'Orientation?',
+		type: 'list',
+		choices: orientations
+	} ).then( answers => answers.orientation );
+}
 
-	// TODO: Input
-	let orientation = 'gay';
-	let category = 'sf-fantasy';
-	let name = 'the-paths-end';
+async function askCategory( orientation, categories ) {
+	let choices = [ '<' ].concat( categories );
+	return enquirer.ask( {
+		name: 'category',
+		message: 'Category?',
+		type: 'list',
+		choices: choices
+	} ).then( answers => answers.category );
+}
+
+async function askName( ) {
+	return enquirer.ask( {
+		name: 'name',
+		message: 'Book name?',
+		type: 'input'
+	} ).then( answers => answers.name );
+}
+
+async function askQuestions() {
+	let orientation, category, name;
+	let yml = loadYaml( fs.readFileSync( 'nifty.yml', 'UTF-8' ) );
+
+	while ( !orientation || !category || !name ) {
+		if ( !orientation ) {
+			orientation = await askOrientation( yml.orientations );
+		} else if ( !category ) {
+			category = await askCategory( orientation, yml.categories[ orientation ] );
+			if ( category === '<' ) category = orientation = false;
+		} else if ( !name ) {
+			name = await askName( );
+			if ( name === '<' ) name = category = false;
+		}
+	}
+
+	return [ orientation, category, name ];
+}
+
+
+async function main() {
+
+	let [ orientation, category, name ] = await askQuestions();
 	let url = urlTemplate( orientation, category, name );
 
 	let dataDir = path.join( __dirname, 'data' );
@@ -67,13 +119,17 @@ function main() {
 		// TODO: Progress
 		.tap( () => console.info( 'Fetch complete. Downloading contents...' ) )
 		.then( links => {
-			let spinners = new MultiSpinner( links );
-			return Bluebird.all( _.map( links, link => downloadLink( url, link ).tap( spinners.success( link ) ) ) );
+			return new Bluebird( resolve => {
+
+				let spinners = new MultiSpinner( links );
+				_.map( links, link => downloadLink( url, link ).tap( spinners.success( link ) ) );
+				spinners.on( 'done', resolve );
+
+			} );
 		} )
 		.tap( () => console.info( 'Download complete. Processing contents...' ) )
 		.then( data => {
-
-			let promise = new Bluebird( ( resolve ) => {
+			return new Bluebird( ( resolve ) => {
 
 				let spinner = new MultiSpinner( [ outputName ] );
 				let zipfile = new yazl.ZipFile();
@@ -85,9 +141,6 @@ function main() {
 				spinner.on( 'done', resolve );
 
 			} );
-
-			return promise;
-
 		} )
 		.tap( () => console.info( 'Process complete. Output available as: ' + outputPath ) );
 

@@ -4,7 +4,7 @@
   "description": "Downloads an archive from nifty.org and produces a ZIP containing all the files",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "eslint -c .eslintrc index.js"
   },
   "author": "Zelgadis87",
   "license": "ISC",
@@ -17,5 +17,8 @@
     "xmldom": "^0.1.27",
     "xpath.js": "^1.0.7",
     "yazl": "^2.4.2"
+  },
+  "devDependencies": {
+    "eslint": "^3.19.0"
   }
 }

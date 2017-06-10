@@ -16,15 +16,13 @@ const request = require( 'request-promise' )
 
 Bluebird.longStackTraces();
 
-let baseUrl = 'http://www.nifty.org/nifty';
-
 function createEnquirer( Enquirer ) {
 	let e = new Enquirer();
 	e.register( 'list', require( 'prompt-list' ) );
 	return e;
 }
 
-function urlTemplate( orientation, category, title ) {
+function urlTemplate( baseUrl, orientation, category, title ) {
 	return `${ baseUrl }/${ orientation }/${ category }/${ title }/`;
 }
 
@@ -83,9 +81,8 @@ async function askName( ) {
 	} ).then( answers => answers.name );
 }
 
-async function askQuestions() {
+async function askQuestions( yml ) {
 	let orientation, category, name;
-	let yml = loadYaml( fs.readFileSync( 'nifty.yml', 'UTF-8' ) );
 
 	while ( !orientation || !category || !name ) {
 		if ( !orientation ) {
@@ -104,14 +101,15 @@ async function askQuestions() {
 
 async function main() {
 
-	let [ orientation, category, name ] = await askQuestions();
-	let url = urlTemplate( orientation, category, name );
+	let yml = loadYaml( fs.readFileSync( 'nifty.yml', 'UTF-8' ) );
+	let [ orientation, category, name ] = await askQuestions( yml );
+	let url = urlTemplate( yml.baseUrl, orientation, category, name );
 
 	let dataDir = path.join( __dirname, 'data' );
 	let outputName = `${ name }.zip`;
 	let outputPath = path.join( dataDir, outputName );
 
-	class RuntimeError extends Error {};
+	class RuntimeError extends Error {}
 
 	return Bluebird.resolve( recursiveMkDir( dataDir ) )
 		.tap( () => console.info( 'Fetching archive info...' ) )
